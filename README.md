@@ -1,5 +1,5 @@
 <h1>Employee Attendance Manager</h1>
-<img src="https://travis-ci.org/MisterFantastic/EmpAttendance.svg"/>
+<img src="https://travis-ci.org/MisterFantastic/EmpAttendance.svg"/><br/>
 I have created this application using the following Yeoman Generator
 https://github.com/stylesuxx/generator-react-webpack-redux
 

@@ -7,6 +7,7 @@
  *          you edit them, they are not updated again.
  */
 import { combineReducers } from 'redux';
+import {EMP_SEARCH} from '../actions/my/namespaced/actions/EmployeeSearch.js';
 /* Populated by react-webpack-redux:reducer */
-const reducers = {};
+const reducers = { EmployeeSearch: require('../reducers/my/namespaced/reducers/EmployeeSearch.js') };
 module.exports = combineReducers(reducers);

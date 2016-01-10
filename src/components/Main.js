@@ -1,15 +1,16 @@
 require('normalize.css');
 require('styles/App.css');
 
-import React from 'react';
+import React,{PropTypes} from 'react';
 import EmpListComponent from 'components/my/namespaced/components/EmpListComponent.js';
-
+import EmpSearch from 'components/my/namespaced/components/EmpSearch.js'
 // let yeomanImage = require('../images/yeoman.png');
 // <img src={yeomanImage} alt="Yeoman Generator" />
         
 class AppComponent extends React.Component {
   render() {
-    return (
+      const {EmployeeSearch}=this.props;
+    return (  
       <div className="index">
         <nav className="navbar navbar-inverse">
             <div className="container-fluid">
@@ -52,6 +53,7 @@ class AppComponent extends React.Component {
         <h1>Employee Attendance Manager</h1>
         <p>This is a simple demo explaining React with bootstrap</p>
         </div>
+        <EmpSearch onAddClick={text=>dispatchSearchEmployee(text)}/>
         <EmpListComponent />
       </div>
       
@@ -60,6 +62,9 @@ class AppComponent extends React.Component {
 }
 
 AppComponent.defaultProps = {
+    EmployeeSearch:PropTypes.oneOf([
+       'EMP_SEARCH' 
+    ])
 };
 
 export default AppComponent;

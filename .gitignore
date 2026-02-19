@@ -28,3 +28,11 @@ node_modules
 
 # Bower
 bower_components/
+
+# Vite build output
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

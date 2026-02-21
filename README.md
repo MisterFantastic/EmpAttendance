@@ -16,8 +16,10 @@
 [Features](#-features) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [Usage Guide](#-usage-guide) · [Tech Stack](#-tech-stack)
 
 </div>
-![Local Image](./HomePage.png)
+
 ---
+
+![NexHR Home Page](./HomePage.png)
 
 ## ✨ Features
 

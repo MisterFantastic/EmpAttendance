@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, UserCheck, UserX, Clock, Wifi } from 'lucide-react'
-import { attendanceRecords } from '../data/mockData'
+import { AttendanceRecord } from '../types'
+import { fetchAllAttendance } from '../services/db'
 
 const statusConfig = {
   present: { label: 'Present', icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
@@ -13,19 +14,34 @@ const statusConfig = {
 }
 
 export default function Attendance() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1))
-  const [selectedDay, setSelectedDay] = useState<Date | null>(new Date(2026, 1, 19))
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDay, setSelectedDay] = useState<Date | null>(new Date())
+  const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchAllAttendance()
+      .then(setAllRecords)
+      .finally(() => setIsLoading(false))
+  }, [])
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
   const firstDayOfWeek = getDay(monthStart)
 
+  // Records for the selected day
+  const selectedDateStr = selectedDay ? format(selectedDay, 'yyyy-MM-dd') : ''
+  const dayRecords = allRecords.filter(r => r.date === selectedDateStr)
+
+  // Days that have records (for dots in calendar)
+  const datesWithData = new Set(allRecords.map(r => r.date))
+
   const summary = {
-    present: attendanceRecords.filter(r => r.status === 'present').length,
-    remote: attendanceRecords.filter(r => r.status === 'remote').length,
-    absent: attendanceRecords.filter(r => r.status === 'absent').length,
-    late: attendanceRecords.filter(r => r.status === 'late').length,
+    present: dayRecords.filter(r => r.status === 'present').length,
+    remote: dayRecords.filter(r => r.status === 'remote').length,
+    absent: dayRecords.filter(r => r.status === 'absent').length,
+    late: dayRecords.filter(r => r.status === 'late').length,
   }
 
   const prevMonth = () => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
@@ -97,8 +113,8 @@ export default function Attendance() {
             ))}
             {days.map(day => {
               const isSelected = selectedDay && isSameDay(day, selectedDay)
-              const isToday = isSameDay(day, new Date(2026, 1, 19))
-              const hasData = day.getMonth() === 1 && day.getDate() === 19
+              const isToday = isSameDay(day, new Date())
+              const hasData = datesWithData.has(format(day, 'yyyy-MM-dd'))
 
               return (
                 <button
@@ -150,46 +166,56 @@ export default function Attendance() {
                 {selectedDay ? format(selectedDay, 'MMMM d, yyyy') : 'Select a date'}
               </p>
             </div>
-            <span className="badge badge-purple">{attendanceRecords.length} records</span>
+            <span className="badge badge-purple">{dayRecords.length} records</span>
           </div>
           <div className="overflow-y-auto max-h-96">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-dark-800">
-                <tr className="border-b border-white/5">
-                  {['Employee', 'Status', 'Check In', 'Check Out', 'Hours'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {attendanceRecords.map((rec, i) => {
-                  const cfg = statusConfig[rec.status]
-                  return (
-                    <motion.tr
-                      key={rec.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="data-table-row"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="text-white text-sm font-medium">{rec.employeeName}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`badge border ${cfg.bg} ${cfg.color} text-xs`}>
-                          {cfg.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 text-sm">{rec.checkIn || '—'}</td>
-                      <td className="px-4 py-3 text-slate-400 text-sm">{rec.checkOut || '—'}</td>
-                      <td className="px-4 py-3 text-slate-200 text-sm font-medium">
-                        {rec.hoursWorked > 0 ? `${rec.hoursWorked}h` : '—'}
-                      </td>
-                    </motion.tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+                Loading attendance data...
+              </div>
+            ) : dayRecords.length === 0 ? (
+              <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+                No records for this date
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-dark-800">
+                  <tr className="border-b border-white/5">
+                    {['Employee', 'Status', 'Check In', 'Check Out', 'Hours'].map(h => (
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dayRecords.map((rec, i) => {
+                    const cfg = statusConfig[rec.status]
+                    return (
+                      <motion.tr
+                        key={rec.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="data-table-row"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="text-white text-sm font-medium">{rec.employeeName}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`badge border ${cfg.bg} ${cfg.color} text-xs`}>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-400 text-sm">{rec.checkIn || '—'}</td>
+                        <td className="px-4 py-3 text-slate-400 text-sm">{rec.checkOut || '—'}</td>
+                        <td className="px-4 py-3 text-slate-200 text-sm font-medium">
+                          {rec.hoursWorked > 0 ? `${rec.hoursWorked}h` : '—'}
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </motion.div>
       </div>

@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { useEmployeeStore } from './store/employeeStore'
+import { isDatabaseEmpty, seedDatabase } from './services/db'
+import { employees, departments, attendanceRecords } from './data/mockData'
 
 import Login from './pages/Login'
 import AppLayout from './components/Layout/AppLayout'
@@ -11,6 +15,28 @@ import Attendance from './pages/Attendance'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import Notifications from './pages/Notifications'
+
+/** Initializes Supabase with seed data on first boot, then loads all data into the store. */
+function DatabaseInitializer() {
+  const fetchAll = useEmployeeStore(s => s.fetchAll)
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const empty = await isDatabaseEmpty()
+        if (empty) {
+          await seedDatabase(employees, departments, attendanceRecords)
+        }
+        await fetchAll()
+      } catch (err) {
+        console.error('Database initialization failed:', err)
+      }
+    }
+    init()
+  }, [fetchAll])
+
+  return null
+}
 
 function LoadingScreen() {
   return (
@@ -29,7 +55,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   if (isLoading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
-  return <>{children}</>
+  return (
+    <>
+      <DatabaseInitializer />
+      {children}
+    </>
+  )
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
